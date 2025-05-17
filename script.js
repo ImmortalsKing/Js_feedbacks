@@ -1,6 +1,7 @@
 // -- Global --
 const timer = 2000;
 const maxChars = 150;
+const feedsUrl = 'https://bytegrad.com/course-assets/js/1/api'
 
 const textArea = document.querySelector('#textarea')
 const counter = document.querySelector('.counter')
@@ -8,8 +9,29 @@ const formEl = document.querySelector('.form')
 const spinnerEl = document.querySelector('.spinner');
 const feedbacksEl = document.querySelector('.feedbacks')
 const submitEl = document.querySelector('.submit-btn')
+const upvoteBtn = document.querySelector('.upvote')
+const upvoteEl = document.querySelector('.upvote__count')
 
+// -- Feedback Item Html --
 
+const renderFeedbackItem = feedback => {
+    const feedItem = `
+    <li class="feedback">
+            <button class="upvote">
+                <i class="fa-solid fa-caret-up upvote__icon"></i>
+                <span class="upvote__count">${feedback.upvoteCount}</span>
+            </button>
+            <section class="feedback__badge">
+                <p class="feedback__letter">${feedback.badgeLetter}</p>
+            </section>
+            <div class="feedback__content">
+                <p class="feedback__company">${feedback.company}</p>
+                <p class="feedback__text">${feedback.text}</p>
+            </div>
+            <p class="feedback__date">${feedback.daysAgo === 0 ? 'NEW' : `${feedback.daysAgo}d`}</p>
+        </li>`
+    feedbacksEl.insertAdjacentHTML('beforeend', feedItem);
+};
 
 function handlerFunction() {
     const textAreaCharacters = textArea.value.length
@@ -49,25 +71,39 @@ const submitHandler = event => {
     const badgeLetter = hashtag.substring(1, 2).toUpperCase();
 
     const upvoteCount = 0;
-    const dayAgo = 0;
+    const daysAgo = 0;
 
-    const feedItem = `
-    <li class="feedback">
-            <button class="upvote">
-                <i class="fa-solid fa-caret-up upvote__icon"></i>
-                <span class="upvote__count">${upvoteCount}</span>
-            </button>
-            <section class="feedback__badge">
-                <p class="feedback__letter">${badgeLetter}</p>
-            </section>
-            <div class="feedback__content">
-                <p class="feedback__company">${company}</p>
-                <p class="feedback__text">${text}</p>
-            </div>
-            <p class="feedback__date">${dayAgo === 0 ? 'NEW' : `${dayAgo}d`}</p>
-        </li>
-    `;
-    feedbacksEl.insertAdjacentHTML('beforeend', feedItem);
+    const feed = {
+        company: company,
+        badgeLetter: badgeLetter,
+        upvoteCount: upvoteCount,
+        daysAgo: daysAgo,
+        text: text
+    };
+
+    renderFeedbackItem(feed);
+
+    // send feedback to server
+
+    fetch(`${feedsUrl}/feedbacks`, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(feed)
+    })
+        .then(response => {
+            if (!response.ok) {
+                console.log('Something went wrong');
+
+            } else {
+                console.log('Successfuly submitted');
+            }
+        });
+
+    // Todo after sending feeds to server
+
     submitEl.blur();
     textArea.value = '';
     counter.textContent = maxChars;
@@ -86,31 +122,33 @@ const showVisualIndicator = (textCheack) => {
 
 formEl.addEventListener('submit', submitHandler);
 
-const feedsitems = 'https://bytegrad.com/course-assets/js/1/api/feedbacks'
-fetch(feedsitems)
-.then(response => {
-    return response.json();
-}).then(data => {
-    data.feedbacks.forEach(feedItem => {
-        const fetchFeedItem = `
-            <li class="feedback">
-            <button class="upvote">
-                <i class="fa-solid fa-caret-up upvote__icon"></i>
-                <span class="upvote__count">${feedItem.upvoteCount}</span>
-            </button>
-            <section class="feedback__badge">
-                <p class="feedback__letter">${feedItem.badgeLetter}</p>
-            </section>
-            <div class="feedback__content">
-                <p class="feedback__company">${feedItem.company}</p>
-                <p class="feedback__text">${feedItem.text}</p>
-            </div>
-            <p class="feedback__date">${feedItem.daysAgo === 0 ? 'NEW' : `${feedItem.daysAgo}d`}</p>
-        </li>`;
-        feedbacksEl.insertAdjacentHTML('beforeend', fetchFeedItem);
-    });
-    spinnerEl.remove();
-}).catch(error => {
-    feedbacksEl.innerHTML = `<br>
+
+fetch(`${feedsUrl}/feedbacks`)
+    .then(response => {
+        return response.json();
+    }).then(data => {
+        data.feedbacks.forEach(feedItem => {
+            renderFeedbackItem(feedItem);
+        });
+        spinnerEl.remove();
+    }).catch(error => {
+        feedbacksEl.innerHTML = `<br>
     <div><p style="padding-left:5px;">Failed to fetch feedback items; here is the error message : <strong class="error_msg">${error}</strong></p></div>`
-})
+    })
+
+const clickHandler = event => {
+    const clickedEl = event.target;
+    const upvoteEl = clickedEl.className.includes('upvote');
+    if (upvoteEl) { 
+        const upvoteBtnEl = clickedEl.closest('.upvote');
+        upvoteBtnEl.disabled=true;
+        const upvoteCountEl = upvoteBtnEl.querySelector('.upvote__count');
+        let upvoteCount = +upvoteBtnEl.textContent;
+        upvoteCountEl.textContent = ++upvoteCount;
+     }
+    else { 
+        clickedEl.closest('.feedback').classList.toggle('feedback--expand');
+     }
+};
+
+feedbacksEl.addEventListener('click', clickHandler);
