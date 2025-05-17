@@ -11,6 +11,7 @@ const feedbacksEl = document.querySelector('.feedbacks')
 const submitEl = document.querySelector('.submit-btn')
 const upvoteBtn = document.querySelector('.upvote')
 const upvoteEl = document.querySelector('.upvote__count')
+const hashtagsListEl = document.querySelector('.hashtags')
 
 // -- Feedback Item Html --
 
@@ -136,6 +137,8 @@ fetch(`${feedsUrl}/feedbacks`)
     <div><p style="padding-left:5px;">Failed to fetch feedback items; here is the error message : <strong class="error_msg">${error}</strong></p></div>`
     })
 
+// Add event to uptovote & feedback text expand
+
 const clickHandler = event => {
     const clickedEl = event.target;
     const upvoteEl = clickedEl.className.includes('upvote');
@@ -152,3 +155,25 @@ const clickHandler = event => {
 };
 
 feedbacksEl.addEventListener('click', clickHandler);
+
+
+const findHashtagHandler = event => {
+    const clickedEl = event.target;
+    const hashtagsUlEl = clickedEl.className === 'hashtags';
+    if(hashtagsUlEl){
+        return;
+    }else{
+        const companyNameFromHashtag = clickedEl.textContent.substring(1).trim();
+        feedbacksEl.childNodes.forEach((childNode) => {
+            if(childNode.nodeType === 3) return;
+            const companyNameFromFeedbackItem = childNode.querySelector('.feedback__company')
+            .textContent.toLowerCase().trim()
+            if(companyNameFromHashtag.toLowerCase().trim() !== companyNameFromFeedbackItem){
+                childNode.remove();
+            };
+        })
+    }
+    
+};
+
+hashtagsListEl.addEventListener('click', findHashtagHandler)
