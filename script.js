@@ -2,6 +2,7 @@
 const timer = 2000;
 const maxChars = 150;
 const feedsUrl = 'https://bytegrad.com/course-assets/js/1/api'
+let allFeedbacks = [];
 
 const textArea = document.querySelector('#textarea')
 const counter = document.querySelector('.counter')
@@ -123,35 +124,40 @@ const showVisualIndicator = (textCheack) => {
 
 formEl.addEventListener('submit', submitHandler);
 
+const renderAllFeedbacks = feedbacksList => {
+    feedbacksEl.innerHTML = '';
+    feedbacksList.forEach(feedItem => {
+        renderFeedbackItem(feedItem);
+    });
+};
 
 fetch(`${feedsUrl}/feedbacks`)
     .then(response => {
         return response.json();
     }).then(data => {
-        data.feedbacks.forEach(feedItem => {
-            renderFeedbackItem(feedItem);
-        });
+        allFeedbacks = data.feedbacks;
+        renderAllFeedbacks(allFeedbacks);
         spinnerEl.remove();
     }).catch(error => {
         feedbacksEl.innerHTML = `<br>
     <div><p style="padding-left:5px;">Failed to fetch feedback items; here is the error message : <strong class="error_msg">${error}</strong></p></div>`
-    })
+    });
 
 // Add event to uptovote & feedback text expand
 
 const clickHandler = event => {
     const clickedEl = event.target;
     const upvoteEl = clickedEl.className.includes('upvote');
-    if (upvoteEl) { 
+    if (upvoteEl) {
         const upvoteBtnEl = clickedEl.closest('.upvote');
-        upvoteBtnEl.disabled=true;
+        upvoteBtnEl.disabled = true;
         const upvoteCountEl = upvoteBtnEl.querySelector('.upvote__count');
         let upvoteCount = +upvoteBtnEl.textContent;
         upvoteCountEl.textContent = ++upvoteCount;
-     }
-    else { 
+    }
+    else {
         clickedEl.closest('.feedback').classList.toggle('feedback--expand');
-     }
+    }
 };
 
 feedbacksEl.addEventListener('click', clickHandler);
@@ -159,21 +165,15 @@ feedbacksEl.addEventListener('click', clickHandler);
 
 const findHashtagHandler = event => {
     const clickedEl = event.target;
-    const hashtagsUlEl = clickedEl.className === 'hashtags';
-    if(hashtagsUlEl){
-        return;
-    }else{
-        const companyNameFromHashtag = clickedEl.textContent.substring(1).trim();
-        feedbacksEl.childNodes.forEach((childNode) => {
-            if(childNode.nodeType === 3) return;
-            const companyNameFromFeedbackItem = childNode.querySelector('.feedback__company')
-            .textContent.toLowerCase().trim()
-            if(companyNameFromHashtag.toLowerCase().trim() !== companyNameFromFeedbackItem){
-                childNode.remove();
-            };
-        })
-    }
+    if (clickedEl.className === 'hashtags') return;
+
+    const companyNameFromHashtag = clickedEl.textContent.substring(1).trim().toLowerCase();
     
+    const filteredFeedbacks = allFeedbacks.filter(feed =>
+        feed.company.toLowerCase().trim() === companyNameFromHashtag
+    );
+
+    renderAllFeedbacks(filteredFeedbacks);
 };
 
 hashtagsListEl.addEventListener('click', findHashtagHandler)
